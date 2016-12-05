@@ -1,0 +1,58 @@
+class MiddleManagers::EvaluationsController < ApplicationController
+  include ActionView::Layouts
+  include ActionController::MimeResponds
+
+  acts_as_token_authentication_handler_for User  
+  before_action :middle_manager?
+
+  before_action :set_evaluation, only: [:show, :update ]
+  
+  respond_to :json
+
+  def index
+    page = params[:page] || 1
+    per_page = params[:per_page] || 10
+    @evaluations = current_user.evaluations.paginate(page: page, per_page: per_page)
+    respond_with(@evaluations)
+  end
+
+  def show
+    respond_with(@evaluation)
+  end
+
+  # def create
+  #   @evaluation = Leader::Evaluation.new(evaluation_params)
+  #   @evaluation.save
+  #   respond_with(@evaluation)
+  # end
+
+  def update
+    @evaluation.already_edited = true
+    @evaluation.update(evaluation_params)
+    respond_with @evaluation, template: "middle_managers/evaluations/show", status: 201
+  end
+
+  # def destroy
+  #   @evaluation.destroy
+  #   respond_with(@evaluation)
+  # end
+
+  private
+
+    def middle_manager?
+      @error = '用户没有访问权限'
+      render @error, status: 401, 
+              template: "error" unless current_user.right_type?('middle_manager')
+    end
+    
+    def set_evaluation
+      @evaluation = current_user.evaluations.find(params[:id])
+    end
+
+    def evaluation_params
+      params.require( :evaluation ).permit(
+        :duties, :thought_morals, 
+        :upright_incorruptiable, :evaluation_totality
+        )
+    end
+end
